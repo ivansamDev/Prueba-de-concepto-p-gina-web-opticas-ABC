@@ -43,6 +43,13 @@ const MOCK_PRODUCTS: Product[] = [
 ];
 
 const CatalogPreview: React.FC = () => {
+  const scrollToVTO = () => {
+    const vtoSection = document.getElementById('probador-virtual');
+    if (vtoSection) {
+      vtoSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section className="py-24 bg-slate-50" id="gafas-oftalmicas">
       <div className="container mx-auto px-4">
@@ -78,7 +85,13 @@ const CatalogPreview: React.FC = () => {
                 )}
                 
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                   <button className="w-full bg-white text-slate-900 py-3 rounded-xl font-black text-sm shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                   <button 
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       scrollToVTO();
+                     }}
+                     className="w-full bg-white text-slate-900 py-3 rounded-xl font-black text-sm shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform"
+                   >
                       Pruébatelas en AI
                    </button>
                 </div>

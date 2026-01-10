@@ -55,7 +55,7 @@ const Footer: React.FC = () => {
 
         <div className="pt-10 border-t border-white/5 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-[10px] uppercase tracking-widest text-slate-500">
-            © 2025 Ópticas ABC Colombia. Todos los derechos reservados. <br className="md:hidden" />
+            © 2026 Ópticas ABC Colombia. Todos los derechos reservados. <br className="md:hidden" />
             <span className="hidden md:inline"> | </span> 
             Palabras clave: Gafas formuladas, examen visual en Bogotá, Medellín, Cali.
           </p>

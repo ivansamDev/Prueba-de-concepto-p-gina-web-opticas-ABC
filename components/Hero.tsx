@@ -11,7 +11,7 @@ const Hero: React.FC = () => {
       <div className="container mx-auto px-4 relative z-10 grid lg:grid-cols-2 gap-12 items-center">
         <div className="max-w-xl text-center lg:text-left">
           <div className="inline-block bg-blue-600/20 text-blue-400 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-6">
-            ✨ Nueva Colección 2025
+            ✨ Nueva Colección 2026
           </div>
           <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
             Moda que <br /><span className="text-blue-500">cuida tus ojos.</span>
