@@ -6,6 +6,13 @@ export enum Category {
   SERVICIOS = 'Servicios'
 }
 
+export enum FaceShape {
+  ROUND = 'Redondo',
+  OVAL = 'Ovalado',
+  SQUARE = 'Cuadrado',
+  HEART = 'Corazón'
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -14,6 +21,7 @@ export interface Product {
   category: Category;
   image: string;
   badge?: string;
+  recommendedFor?: FaceShape[];
 }
 
 export interface Testimonial {
