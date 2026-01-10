@@ -1,0 +1,7 @@
+{
+  "name": "Ópticas ABC - Salud Visual y Moda",
+  "description": "Plataforma de eCommerce líder en salud visual en Colombia, con probador virtual, agendamiento de citas y catálogo de moda visual.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
