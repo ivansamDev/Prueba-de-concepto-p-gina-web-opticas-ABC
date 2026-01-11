@@ -45,6 +45,12 @@ const VTO_FRAMES: (Product & { description: string, style: string, previewBg: st
 type Step = 'setup' | 'capturing' | 'analyzing' | 'experience';
 type Angle = 'frontal' | 'left' | 'right';
 
+interface HistoryItem {
+  id: string;
+  image: string;
+  frame: Product;
+}
+
 const VirtualTryOn: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('setup');
   const [currentAngle, setCurrentAngle] = useState<Angle>('frontal');
@@ -53,6 +59,7 @@ const VirtualTryOn: React.FC = () => {
   const [selectedFrame, setSelectedFrame] = useState(VTO_FRAMES[0]);
   const [isRendering, setIsRendering] = useState(false);
   const [aiRenderedImage, setAiRenderedImage] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [budget, setBudget] = useState<number>(800000);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -125,14 +132,13 @@ const VirtualTryOn: React.FC = () => {
 
   const renderRealisticFusion = async () => {
     setIsRendering(true);
-    setAiRenderedImage(null);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const frontalData = photos.frontal?.split(',')[1];
       
       const prompt = `Image-to-image realism: Place these specific glasses "${selectedFrame.name}" on the person's face in the photo. 
-      Ensure the frame bridge sits naturally on the nose. Match the lighting, create subtle shadows from the temples on the skin, 
-      and ensure the lenses look transparent with realistic reflections. High-quality optical retail rendering.`;
+      The glasses must fit exactly on the nose bridge. High-quality reflections on lenses. Suble shadows on the face from the frame. 
+      Professional retail quality.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
@@ -146,7 +152,13 @@ const VirtualTryOn: React.FC = () => {
 
       for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {
-          setAiRenderedImage(`data:image/png;base64,${part.inlineData.data}`);
+          const newImage = `data:image/png;base64,${part.inlineData.data}`;
+          setAiRenderedImage(newImage);
+          // Add to history
+          setHistory(prev => [
+            { id: Date.now().toString(), image: newImage, frame: selectedFrame },
+            ...prev
+          ].slice(0, 5)); // Keep last 5 tests
           break;
         }
       }
@@ -218,40 +230,78 @@ const VirtualTryOn: React.FC = () => {
           <div className="grid lg:grid-cols-12 gap-12 items-start max-w-[1400px] mx-auto">
             
             {/* Main Avatar Stage */}
-            <div className="lg:col-span-8 bg-black/40 rounded-[4rem] relative overflow-hidden shadow-2xl min-h-[750px] flex items-center justify-center border border-white/5 group">
-              {aiRenderedImage ? (
-                <img src={aiRenderedImage} className="absolute inset-0 w-full h-full object-cover animate-in fade-in zoom-in duration-1000" alt="Fused Result" />
-              ) : (
-                <img src={photos.frontal!} className="absolute inset-0 w-full h-full object-cover opacity-70 grayscale-[0.2]" alt="Clean Avatar" />
-              )}
-              
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/20"></div>
-              
-              {/* Overlay Face Label */}
-              <div className="absolute top-12 left-12 flex gap-3">
-                <span className="bg-blue-600/90 backdrop-blur-md text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-widest border border-blue-500/20">ROSTRO {detectedShape}</span>
-                {aiRenderedImage && <span className="bg-purple-600/90 backdrop-blur-md text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-widest animate-pulse">IA Render Active</span>}
+            <div className="lg:col-span-8 flex flex-col gap-8">
+              <div className="bg-black/40 rounded-[4rem] relative overflow-hidden shadow-2xl min-h-[700px] flex items-center justify-center border border-white/5 group">
+                {aiRenderedImage ? (
+                  <img src={aiRenderedImage} className="absolute inset-0 w-full h-full object-cover animate-in fade-in zoom-in duration-1000" alt="Fused Result" />
+                ) : (
+                  <img src={photos.frontal!} className="absolute inset-0 w-full h-full object-cover opacity-70 grayscale-[0.2]" alt="Clean Avatar" />
+                )}
+                
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/20"></div>
+                
+                {/* Overlay Face Label */}
+                <div className="absolute top-12 left-12 flex gap-3">
+                  <span className="bg-blue-600/90 backdrop-blur-md text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-widest border border-blue-500/20">ROSTRO {detectedShape}</span>
+                  {aiRenderedImage && <span className="bg-purple-600/90 backdrop-blur-md text-[10px] font-black px-5 py-2 rounded-full uppercase tracking-widest animate-pulse">IA Render Active</span>}
+                </div>
+
+                {/* Bottom Info Bar */}
+                <div className="absolute bottom-12 left-12 right-12 flex flex-col md:flex-row justify-between items-end gap-6">
+                  <div className="text-left animate-in slide-in-from-bottom duration-700">
+                    <h4 className="text-5xl font-black mb-2 tracking-tighter">{selectedFrame.name}</h4>
+                    <p className="text-slate-400 text-lg mb-4 max-w-sm italic">"{selectedFrame.description}"</p>
+                    <div className="flex items-center gap-6">
+                      <span className="text-4xl font-black text-white">${selectedFrame.price.toLocaleString('es-CO')}</span>
+                      <button className="bg-white text-slate-950 px-10 py-5 rounded-[2.5rem] font-black text-lg hover:bg-blue-600 hover:text-white transition-all shadow-2xl active:scale-95">
+                        Comprar Ahora
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Bottom Info Bar */}
-              <div className="absolute bottom-12 left-12 right-12 flex flex-col md:flex-row justify-between items-end gap-6">
-                <div className="text-left animate-in slide-in-from-bottom duration-700">
-                  <h4 className="text-5xl font-black mb-2 tracking-tighter">{selectedFrame.name}</h4>
-                  <p className="text-slate-400 text-lg mb-4 max-w-sm italic">"{selectedFrame.description}"</p>
-                  <div className="flex items-center gap-6">
-                    <span className="text-4xl font-black text-white">${selectedFrame.price.toLocaleString('es-CO')}</span>
-                    <button className="bg-white text-slate-950 px-10 py-5 rounded-[2.5rem] font-black text-lg hover:bg-blue-600 hover:text-white transition-all shadow-2xl active:scale-95">
-                      Comprar Ahora
+              {/* History Gallery (THE ADDED PART AS PER REFERENCE) */}
+              <div className="bg-white/[0.03] border border-white/10 p-10 rounded-[4rem] backdrop-blur-3xl">
+                <div className="flex items-center justify-between mb-8">
+                   <h5 className="font-black text-xs uppercase tracking-[0.4em] text-blue-400">Pruebas Recientes</h5>
+                   <button onClick={() => { setHistory([]); setAiRenderedImage(null); }} className="text-[10px] font-black uppercase text-slate-500 hover:text-white transition-colors">Limpiar Galería</button>
+                </div>
+                
+                <div className="flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
+                  {history.length > 0 ? history.map((item) => (
+                    <button 
+                      key={item.id}
+                      onClick={() => {
+                        setAiRenderedImage(item.image);
+                        setSelectedFrame(item.frame as any);
+                      }}
+                      className={`group relative flex-shrink-0 w-44 aspect-square rounded-[2rem] border-2 transition-all overflow-hidden ${
+                        aiRenderedImage === item.image ? 'border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'border-white/10 hover:border-white/30'
+                      }`}
+                    >
+                      <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="History" />
+                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black to-transparent">
+                        <p className="text-[8px] font-black uppercase truncate">{item.frame.name}</p>
+                      </div>
                     </button>
-                  </div>
+                  )) : (
+                    <div className="flex gap-6">
+                       {[1,2,3].map(i => (
+                         <div key={i} className="w-44 aspect-square rounded-[2rem] border-2 border-dashed border-white/5 flex items-center justify-center opacity-20">
+                            <span className="text-[10px] font-black uppercase">Fusión {i}</span>
+                         </div>
+                       ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Selection Sidebar (following Reference) */}
+            {/* Selection Sidebar */}
             <div className="lg:col-span-4 space-y-8 flex flex-col h-full sticky top-8">
               
-              {/* Budget & Title Card */}
+              {/* Budget Card */}
               <div className="bg-white/[0.03] border border-white/10 p-10 rounded-[4rem] backdrop-blur-3xl shadow-2xl">
                 <div className="flex justify-between items-end mb-8">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Presupuesto</label>
@@ -267,12 +317,11 @@ const VirtualTryOn: React.FC = () => {
                 />
               </div>
 
-              {/* Selection Showcase (The bokeh background preview) */}
+              {/* Product Preview Card */}
               <div className="relative group overflow-hidden rounded-[4rem] aspect-[4/5] border border-white/10 shadow-2xl bg-slate-900">
                 <img src={selectedFrame.previewBg} className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm scale-110 group-hover:scale-125 transition-transform duration-1000" />
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-950/90"></div>
                 
-                {/* Product Shot */}
                 <div className="relative h-full flex flex-col items-center justify-center p-10">
                   <img src={selectedFrame.image} className="w-full drop-shadow-[0_35px_60px_rgba(0,0,0,0.8)] transform rotate-[-5deg] group-hover:rotate-0 transition-transform duration-700" alt="Product Shot" />
                   
@@ -282,27 +331,26 @@ const VirtualTryOn: React.FC = () => {
                   </div>
                 </div>
 
-                {/* AI Render Button */}
                 <div className="absolute bottom-10 left-10 right-10">
                   <button 
                     onClick={renderRealisticFusion}
                     disabled={isRendering}
                     className={`w-full py-5 rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
-                      aiRenderedImage ? 'bg-green-600 hover:bg-green-500' : 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/20'
+                      isRendering ? 'bg-slate-700 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/20'
                     }`}
                   >
                     {isRendering ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                        Fusionando...
+                        Analizando...
                       </>
-                    ) : aiRenderedImage ? 'Ver Original' : '✨ Fusión Realista (IA)'}
+                    ) : '✨ Fusión Realista (IA)'}
                   </button>
                 </div>
               </div>
 
               {/* Match Automático List */}
-              <div className="bg-white/[0.03] border border-white/10 p-8 rounded-[4rem] backdrop-blur-3xl shadow-2xl flex-grow flex flex-col overflow-hidden max-h-[400px]">
+              <div className="bg-white/[0.03] border border-white/10 p-8 rounded-[4rem] backdrop-blur-3xl shadow-2xl flex-grow flex flex-col overflow-hidden max-h-[350px]">
                 <h5 className="font-black text-xs uppercase tracking-[0.3em] text-blue-400 mb-6">Match Automático</h5>
                 <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-grow">
                   {VTO_FRAMES.filter(f => f.price <= budget).map(frame => (
@@ -322,9 +370,6 @@ const VirtualTryOn: React.FC = () => {
                       <div className="text-left flex-grow">
                         <p className={`text-[8px] font-black uppercase ${selectedFrame.id === frame.id ? 'text-blue-100' : 'text-slate-500'}`}>{frame.brand}</p>
                         <h6 className="font-bold text-sm leading-tight">{frame.name}</h6>
-                        {frame.recommendedFor?.includes(detectedShape!) && (
-                           <span className="text-[6px] font-black text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full uppercase mt-1 inline-block">Perfecto</span>
-                        )}
                       </div>
                     </button>
                   ))}
@@ -335,6 +380,7 @@ const VirtualTryOn: React.FC = () => {
                 onClick={() => {
                   setCurrentStep('setup');
                   setAiRenderedImage(null);
+                  setHistory([]);
                   setPhotos({ frontal: null, left: null, right: null });
                 }}
                 className="w-full text-slate-600 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest pb-8"
@@ -348,7 +394,7 @@ const VirtualTryOn: React.FC = () => {
       </div>
       <canvas ref={canvasRef} className="hidden" />
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
       `}</style>
     </section>
